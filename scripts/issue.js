@@ -8,8 +8,14 @@ async function main() {
     const receiver = process.env.RECEIVER;
     const provider = new ethers.JsonRpcProvider(process.env.AMOY_RPC_URL);
     const wallet = new ethers.Wallet(deployer, provider);
-    
     const tokenAddress = process.env.WOORETOKEN;
+    
+    // console.log("deployer:", deployer);
+    // console.log("receiver:", receiver);
+    // console.log("provider:", provider);
+    // console.log("tokenAddress:", tokenAddress);
+    // console.log("tokenArtifact.abi:", tokenArtifact.abi);
+      
     const token = new ethers.Contract(tokenAddress, tokenArtifact.abi, wallet);
   
   
@@ -28,10 +34,10 @@ async function main() {
     const amount = parseUnits("1000", 18); // decimal = 18
     const data = "0x";
   
-    const tx = await token.issue(receiver.address, amount, data);
+    const tx = await token.issue(receiver, amount, data);
     await tx.wait();
   
-    console.log(`✅ Issued 1000 tokens to ${receiver.address}`);
+    console.log(`✅ Issued 1000 tokens to ${receiver}`);
   }
   
   main().catch((error) => {
