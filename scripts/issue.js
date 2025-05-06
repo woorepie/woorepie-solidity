@@ -35,9 +35,12 @@ async function main() {
     const data = "0x";
   
     const tx = await token.issue(receiver, amount, data);
-    await tx.wait();
+    console.log("tx:", tx.hash);
+
+    const receipt = await tx.wait();
   
     console.log(`✅ Issued 1000 tokens to ${receiver}`);
+    console.log("receipt:", receipt);
   }
   
   main().catch((error) => {
