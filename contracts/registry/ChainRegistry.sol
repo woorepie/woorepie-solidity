@@ -117,7 +117,8 @@ contract ChainRegistry is AccessControl, Pausable {
         bytes32 messageHash,
         bytes memory signature
     ) internal view returns (bool) {
-        address signer = messageHash.toEthSignedMessageHash().recover(signature);
+        //address signer = messageHash.toEthSignedMessageHash().recover(signature);
+        address signer = ECDSA.recover(messageHash, signature); 
         return hasRole(VERIFIER_ROLE, signer);
     }
 
