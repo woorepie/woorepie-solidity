@@ -45,6 +45,7 @@ contract ChainRegistry is AccessControl, Pausable {
     event IdentityVerified(address indexed user, bytes32 verificationHash);
     event IdentitySynced(address indexed user, bytes32 syncHash, uint256 timestamp);
     event IdentityStatusUpdated(address indexed user, IdentityStatus status);
+    event DebugHasRole(address signer, bool hasRole);
     event DebugSignatureCheck(
         address expectedSigner,
         address recoveredSigner,
@@ -65,11 +66,12 @@ contract ChainRegistry is AccessControl, Pausable {
         address user,
         bytes32 verificationHash,
         uint256 validityPeriod,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
+        bytes memory signature
+        //uint8 v,
+        //bytes32 r,
+        //bytes32 s
     ) external whenNotPaused onlyRole(VERIFIER_ROLE) {
-        require(!usedSignatures[keccak256(abi.encode(v, r, s))], "Signature already used");
+        require(!usedSignatures[keccak256(signature)], "Signature already used");
         
         // 서명 검증
         bytes32 messageHash = keccak256(abi.encode(user, verificationHash, validityPeriod));
@@ -78,11 +80,11 @@ contract ChainRegistry is AccessControl, Pausable {
         //address signer = ECDSA.recover(prefixedHash, v, r, s);
 
         bytes32 prefixedHash = verificationHash.toEthSignedMessageHash();
-        address signer = ECDSA.recover(prefixedHash, v, r, s);
-        emit DebugSignatureCheck(signer, msg.sender, messageHash, prefixedHash, v, r, s); 
+        address signer = ECDSA.recover(prefixedHash, signature);
+        //emit DebugSignatureCheck(signer, msg.sender, messageHash, prefixedHash, v, r, s); 
 
         //require(hasRole(VERIFIER_ROLE, signer), "Invalid signature");
-
+        emit DebugHasRole(signer, hasRole(VERIFIER_ROLE, signer));
         identities[user] = Identity({
             isVerified: true,
             validUntil: block.timestamp + validityPeriod,
@@ -90,7 +92,7 @@ contract ChainRegistry is AccessControl, Pausable {
             status: IdentityStatus.VERIFIED
         });
 
-        usedSignatures[keccak256(abi.encodePacked(v, r, s))] = true;
+        usedSignatures[keccak256(signature)] = true;
         emit IdentityVerified(user, verificationHash);
     }
 

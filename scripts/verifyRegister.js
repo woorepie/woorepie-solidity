@@ -68,10 +68,10 @@ async function main() {
     console.log("v: ", v);
     console.log("r: ", r);
     console.log("s: ", s);
-    await chainRegistry.verifyIdentity.staticCall(user, hash, validityPeriod, v, r, s);
+    // await chainRegistry.verifyIdentity.staticCall(user, hash, validityPeriod, v, r, s);
 
     // 4. ChainRegistry.verifyIdentity 함수 호출 (서명과 사용자 주소 전달)
-    const tx = await chainRegistry.verifyIdentity(user, hash, validityPeriod, v, r, s);
+    const tx = await chainRegistry.verifyIdentity(user, hash, validityPeriod, signature);
     console.log(`verifyIdentity 트랜잭션 전송: ${tx.hash}`);
     await tx.wait();  // 트랜잭션 확정 대기
     console.log(`${user} 사용자 신원 등록 완료 (트랜잭션 확인됨)`);
