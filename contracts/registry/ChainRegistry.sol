@@ -45,6 +45,15 @@ contract ChainRegistry is AccessControl, Pausable {
     event IdentityVerified(address indexed user, bytes32 verificationHash);
     event IdentitySynced(address indexed user, bytes32 syncHash, uint256 timestamp);
     event IdentityStatusUpdated(address indexed user, IdentityStatus status);
+    event DebugSignatureCheck(
+        address expectedSigner,
+        address recoveredSigner,
+        bytes32 originalMessageHash,
+        bytes32 prefixedHash,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+        );
 
     constructor() {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -56,13 +65,23 @@ contract ChainRegistry is AccessControl, Pausable {
         address user,
         bytes32 verificationHash,
         uint256 validityPeriod,
-        bytes memory signature
+        uint8 v,
+        bytes32 r,
+        bytes32 s
     ) external whenNotPaused onlyRole(VERIFIER_ROLE) {
-        require(!usedSignatures[keccak256(signature)], "Signature already used");
+        require(!usedSignatures[keccak256(abi.encode(v, r, s))], "Signature already used");
         
         // 서명 검증
-        bytes32 messageHash = keccak256(abi.encodePacked(user, verificationHash, validityPeriod));
-        require(isValidSignature(messageHash, signature), "Invalid signature");
+        bytes32 messageHash = keccak256(abi.encode(user, verificationHash, validityPeriod));
+        //require(isValidSignature(messageHash, signature), "Invalid ddd");
+        //bytes32 prefixedHash = messageHash.toEthSignedMessageHash();
+        //address signer = ECDSA.recover(prefixedHash, v, r, s);
+
+        bytes32 prefixedHash = verificationHash.toEthSignedMessageHash();
+        address signer = ECDSA.recover(prefixedHash, v, r, s);
+        emit DebugSignatureCheck(signer, msg.sender, messageHash, prefixedHash, v, r, s); 
+
+        //require(hasRole(VERIFIER_ROLE, signer), "Invalid signature");
 
         identities[user] = Identity({
             isVerified: true,
@@ -71,10 +90,9 @@ contract ChainRegistry is AccessControl, Pausable {
             status: IdentityStatus.VERIFIED
         });
 
-        usedSignatures[keccak256(signature)] = true;
+        usedSignatures[keccak256(abi.encodePacked(v, r, s))] = true;
         emit IdentityVerified(user, verificationHash);
     }
-
 
     // 동기화 기능
     function syncIdentity(
@@ -116,9 +134,10 @@ contract ChainRegistry is AccessControl, Pausable {
     function isValidSignature(
         bytes32 messageHash,
         bytes memory signature
-    ) internal view returns (bool) {
-        //address signer = messageHash.toEthSignedMessageHash().recover(signature);
-        address signer = ECDSA.recover(messageHash, signature); 
+    ) internal returns (bool) {
+        address signer = messageHash.toEthSignedMessageHash().recover(signature);
+        //address signer = ECDSA.recover(messageHash, signature);
+        //emit DebugSignatureCheck(msg.sender, signer, messageHash, messageHash.toEthSignedMessageHash());
         return hasRole(VERIFIER_ROLE, signer);
     }
 
