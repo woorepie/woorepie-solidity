@@ -1,5 +1,6 @@
 require("dotenv").config();
 const { hre } = require("hardhat");
+import "hardhat/console.sol";
 const { ethers, JsonRpcProvider, Wallet, solidityPacked, keccak256,solidityPackedKeccak256, getBytes } = require("ethers");
 const tokenArtifact = require("../artifacts/contracts/WooreToken.sol/WooreToken.json");
 const chainRegistryArtifact = require("../artifacts/contracts/registry/ChainRegistry.sol/ChainRegistry.json");

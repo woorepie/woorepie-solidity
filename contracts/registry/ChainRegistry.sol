@@ -19,9 +19,6 @@ contract ChainRegistry is AccessControl, Pausable {
         IdentityStatus status;
     }
 
-    // 2. 멀티체인 검증 데이터 구조 (해당 프로젝트에서 필요하지 않을 것이라 판단)
-
-
     // 3. 동기화 데이터 구조
     struct SyncData {
         uint256 lastSyncTimestamp;
@@ -45,20 +42,11 @@ contract ChainRegistry is AccessControl, Pausable {
     event IdentityVerified(address indexed user, bytes32 verificationHash);
     event IdentitySynced(address indexed user, bytes32 syncHash, uint256 timestamp);
     event IdentityStatusUpdated(address indexed user, IdentityStatus status);
-    event DebugHasRole(address signer, bool hasRole);
-    event DebugSignatureCheck(
-        address expectedSigner,
-        address recoveredSigner,
-        bytes32 originalMessageHash,
-        bytes32 prefixedHash,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-        );
 
     constructor() {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(VERIFIER_ROLE, msg.sender);
+        _setupRole(ADMIN_ROLE, msg.sender);
     }
 
     // 중앙화 검증 기능
@@ -67,24 +55,13 @@ contract ChainRegistry is AccessControl, Pausable {
         bytes32 verificationHash,
         uint256 validityPeriod,
         bytes memory signature
-        //uint8 v,
-        //bytes32 r,
-        //bytes32 s
     ) external whenNotPaused onlyRole(VERIFIER_ROLE) {
         require(!usedSignatures[keccak256(signature)], "Signature already used");
         
         // 서명 검증
         bytes32 messageHash = keccak256(abi.encode(user, verificationHash, validityPeriod));
-        //require(isValidSignature(messageHash, signature), "Invalid ddd");
-        //bytes32 prefixedHash = messageHash.toEthSignedMessageHash();
-        //address signer = ECDSA.recover(prefixedHash, v, r, s);
+        require(isValidSignature(messageHash, signature), "Invalid signature");
 
-        bytes32 prefixedHash = verificationHash.toEthSignedMessageHash();
-        address signer = ECDSA.recover(prefixedHash, signature);
-        //emit DebugSignatureCheck(signer, msg.sender, messageHash, prefixedHash, v, r, s); 
-
-        //require(hasRole(VERIFIER_ROLE, signer), "Invalid signature");
-        emit DebugHasRole(signer, hasRole(VERIFIER_ROLE, signer));
         identities[user] = Identity({
             isVerified: true,
             validUntil: block.timestamp + validityPeriod,
@@ -131,15 +108,13 @@ contract ChainRegistry is AccessControl, Pausable {
         );
     }
 
-
-    // 서명 검증 헬퍼 함수
+    // 서명 검증 헬퍼 함수 (수정됨)
     function isValidSignature(
         bytes32 messageHash,
         bytes memory signature
-    ) internal returns (bool) {
-        address signer = messageHash.toEthSignedMessageHash().recover(signature);
-        //address signer = ECDSA.recover(messageHash, signature);
-        //emit DebugSignatureCheck(msg.sender, signer, messageHash, messageHash.toEthSignedMessageHash());
+    ) internal view returns (bool) {
+        bytes32 prefixedHash = messageHash.toEthSignedMessageHash();
+        address signer = prefixedHash.recover(signature);
         return hasRole(VERIFIER_ROLE, signer);
     }
 
